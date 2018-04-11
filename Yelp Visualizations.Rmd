@@ -648,10 +648,10 @@ knitr::kable(avg_sent)
 ```
 
 As expected, higher ratings tend to have higher sentiment scores. But I can take this a step
-further-- perhaps I am interested in seeing how service
+further-- perhaps I am interested in seeing how 'service'
 being mentioned affects the average sentiment. I can filter for reviews that contain
 the word 'service' and recalculate the sentiments to get an idea of how the review changes.
-In this case, it looks like service being mentioned in a good review is related to having a higher
+In this case, it looks like 'service' being mentioned in a good review is related to having a higher
 average sentiment, while 'service' in a bad review is accompanied by a small drop in
 average sentiment.
 
@@ -697,9 +697,10 @@ and positive reviews have gotten more positive. Interestingly, if you
 don't facet this plot, the average sentiment has stayed pretty much constant
 since 2009. I'm a little bit suspicious of this drastic of a change in 
 sentiment in the reviews. My gut is that the shortening length of 5 star
-reviews over time is simultaneously giving greater emphasis to the words
+reviews over time is giving greater emphasis to the words
 you'd expect in a 5 star review --amazing, fantastic, etc. So the presence 
-of these words in shorter and shorter reviews is pushing up the averages 
+of these words in shorter and shorter reviews is pushing up--or down in the case of negative
+words--the averages 
 over time. 
 
 ### Review Length versus Review Sentiment
@@ -731,7 +732,7 @@ be scored with a very high or very low sentiment rating. That seems to fall in l
 I mentioned above about a handful of very positive or negative words carrying a ton
 of weight in shorter reviews. 
 
-One question you should have when looking at this plot is
+But one question you should have when looking at this plot is
 'How come 1 star and 5 star reviews both have so many high and low sentiment reviews?' And that's
 a good point. Why are we seeing low sentiment 5 star reviews at all? This is an issue with using 
 basic sentiment analysis. 'Feta-freaking-licious. Holy shit. That's all I can say.' is a 5 star
@@ -740,6 +741,8 @@ dataset is relatively small and many words aren't captured by it. This reduces t
 again giving more weight to those words that *are* scored. One of the words that *is* included is 'shit',
 which happens to receive a -4 score. Any human that reads this review will recognize that 'Holy shit' is 
 a good exclamation in this context, but our naive sentiment scoring can't pickup on that.
+This sort of sentiment analysis will also mishandle negation of words -- 'not like' is obviously
+negative to us, but will be see as 'like' to the sentiment analysis(at least in it's present form).
 
 And similar things happen in the negative reviews that receive high sentiment scores. 
 'Would make for an outstanding buffets for dogs, raccoons or other animals.' is obviously
@@ -755,16 +758,28 @@ tend to be very positive. Looking into those reviews, you see a lot of 'Outstand
 some random sentence of praise here' reviews. Short, sweet, and very positive. As we get 
 longer reviews, it's not that these 'outstandings' disappear, it's that they are moderated by
 a plethora of other words in the longer review. It's essentially a regression to the mean effect.
-You see that in the trend line regressing 
+You see that in the trend line drifting
 down to a slightly lower sentiment. Similar effects are seen in the 1 star reviews, 
 but in the opposite direction. Reviews gradually trend more positive as the length of a 
 bad review grows--all the starkly negative words are averaged out with more
 moderate sentiment words.
 
 ### Average Sentiment by Category
-Another step towards understanding the difference seen in categories is looking at the 
-average sentiment of their reviews. 
-```{r sentiemtn-score-by-category, fig.align='center'}
+Another step towards understanding the difference seen between categories is looking at the 
+average sentiment of their reviews. Here, again, it's obvious that sentiment
+of these high variance review restaurants is generally lower. Now it's important
+to note that Fast Food and Chicken Wing restaurants on average receive lower
+ratings than Vegan and Vegetarian restaurants, so we'd have to control for this 
+rating difference to see if this sentiment difference is real or is an artifact of the 
+rating difference. I think this could be 
+an instance where propensity score matching would help balance the dataset
+so we could more accurately examine the difference in sentiment rating between
+restaurant types, but I'll leave that as an exercise for the reader. 
+
+For now, I can say that sentiment for Chicken Wings and Fast Food has trended down
+over the past several years while Vegan and Vegetarian may have seen a mild increase 
+in average sentiment.
+```{r sentiment-score-by-category, fig.align='center'}
 word_per_review%>%
   inner_join(sample_reviews, by = 'review_id')%>%
   left_join(restaurants, by = 'business_id')%>%
@@ -776,6 +791,7 @@ word_per_review%>%
   summarise(sentiment = mean(score), words = n())%>%
   ggplot(aes(monthly, sentiment))+
   geom_line()+
+  geom_hline(yintercept = 1, color = 'steelblue', linetype = 2)+
   geom_smooth(color = 'red', size = .5)+
   facet_wrap(~categories)+
   my_theme()+
@@ -783,24 +799,28 @@ word_per_review%>%
        y = 'Average Sentiment',
        title = 'Average Monthly Sentiment for Selected Categories')
 ```
-### What are the most influential words in good vs. bad reviews
-One last way we will examine review sentiment is to see which
-words have the greatest influence on the sentiment of reviews. We do this by 
-looking at the number of times that a word occurs in a review and multiplying that
-by the words sentiment score. 
 
-As we can see below, the contributions look quite different for each
+
+### What are the most influential words in good vs. bad reviews
+One last way I will examine review sentiment is to see which
+words have the greatest influence on the sentiment of reviews. I'll do this by 
+looking at the number of times that a word occurs in a review and multiplying that
+by that words sentiment score. 
+
+As you can see below, the contributions look quite different for each
 separate rating. 1 star reviews are overwhelmed by words such as bad, worst and horrible, while
 5 star reviews are dominated by positive words such as amazing and love. It's important
 to, again, point out that sentiment analysis by word won't catch certain intricacies 
-of the English language. I have a feeling if we were to look at bigrams of review text,
-we'd see that what actually occurs most often in 1 star reviews are 'didn't love' or
+of the English language. I have a feeling if I were to look at bigrams of review text,
+I'd see that what actually occurs most often in 1 star reviews is 'didn't love' or
 'not recommend' rather than 'love' and 'recommend'. This sort of negation is missed by word level tokenization, but could be
-easily captured by bigrams if we felt so inclined.
+easily captured by bigrams if you were so inclined.
 
-Still, the visualization is quite informative even with it's flaws. We see more and more positive
-influence as we go from 1 to 5 star reviews, which tells us we are capturing the general 
-idea of a review even if we are missing some details.
+Still, the visualization is quite informative. You see more and more positive
+influence as you go from 1 to 5 star reviews, which tells me I am capturing the general 
+idea of a review even if I am missing some details. In general, this gives me confidence that
+there are actual word usage differences between ratings that my model
+will be able to identify and use for prediction.
 
 ```{r sentiment-contribution, fig.align = 'center'}
 t <- word_per_review%>%
@@ -832,6 +852,54 @@ ggplot(t, aes(order, contribution, fill = contribution > 0))+
   
 ```
 
+### What words are influencing our selected restaurant categories?
+
+And finally I decided to do the same sort of sentiment contribution analysis, but focus on 
+our selected restaurant categories. The differences aren't as noticeable here, but some 
+word contributions still stand out. Fast food has a lot of contribution from 'clean' and
+'fresh' and 'wrong' while those words don't show up in any of the other 3 categories.
+I imagine Fast Food reviews focus on slightly different signals than other
+restaurants. Since fast food is standardized across restaurants, the differentiating factors
+are things like the restaurant being clean, or the fries being fresh, or your order being
+wrong. These are all things that are taken for granted--more or less--at non-fast food
+restaurants and so maybe these factors rise to a higher level of importance for the fast food category,
+resulting in their appearance in more fast food reviews.
+
+If there are similar identifiers in other categories then it bodes well for there being
+textual differences amongst the different restaurant categories. They may be subtle, but
+hopefully our neural network will pickup on them.
+```{r sentiment-contribution-by-category, fig.align='center'}
+cats <- word_per_review%>%
+  anti_join(stop_words)%>%
+  inner_join(sample_reviews, by = 'review_id')%>%
+  left_join(restaurants, by = 'business_id')%>%
+  select(-text)%>%
+  inner_join(get_sentiments('afinn'), by = 'word')%>%
+  filter(categories %in% c('Fast Food', 'Chicken Wings', 'Vegan', 'Vegetarian'))%>%
+  group_by(categories, word)%>%
+  summarise(occurences = n(), contribution = sum(score))%>%
+  top_n(15, abs(contribution))%>%
+  ungroup()%>%
+  arrange(categories, contribution)%>%
+  mutate(order = row_number())
+
+
+ggplot(cats, aes(order, contribution, fill = contribution > 0))+
+  geom_col(show.legend = FALSE)+
+  facet_wrap(~categories, scales = 'free')+
+  scale_x_continuous(
+    breaks = cats$order,
+    labels = cats$word,
+    expand = c(0,0)
+  )+
+  coord_flip()+
+  my_theme()+
+  labs(x = '',
+       y = 'Contribution toward Sentiment',
+       title = 'Words with the Highest Contribution Towards Sentiment')
+  
+```
+
 # Conclusions
 The Yelp dataset is huge, with an enormous range of avenues to explore, but I think I was able 
 to get a decent handle on how Yelp reviews look through this initial exploration. Review length 
@@ -842,9 +910,9 @@ that an NLP based approach to rating prediction will be successful.
 
 This exploration is by no means complete and there are certain areas--such as my complete
 neglection of restaurant locations and names as well as entire tables of data--ie user
-related info.  But, one must pick and choose one a dataset like this when confronted 
+related info.  But, one must pick and choose with a dataset like this when confronted 
 with the realities of limited time. 
 
-This initial exploration is part one of my Yelp dataset series. Part two is going to build
+This initial exploration is part one of my Yelp dataset series. In part two I will build
 on this post and use review text to build a neural network to predict review ratings from
 the text of the review itself. Sounds like a fun challenge to me! Until next time.
