@@ -1,0 +1,15 @@
+dash==0.21.0
+dash-core-components==0.22.1
+dash-html-components==0.10.0
+dash-renderer==0.12.1
+Flask==1.0
+Flask-Compress==1.4.0
+gunicorn==19.7.1
+h5py==2.7.1
+Keras==2.1.6
+Markdown==2.6.11
+MarkupSafe==1.0
+numpy==1.14.2
+plotly==2.5.1
+scipy==1.0.1
+tensorflow==1.7.0
