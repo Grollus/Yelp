@@ -49,7 +49,9 @@ def predict_text(submit, review):
 		try:
 			clean_text = prepare_text([review])
 			preds = model.predict(clean_text)
-			return 'This review sounds like a {} star review.'.format(np.argmax(preds, axis = 1)[0] + 1)
+			#return 'This review sounds like a {} star review.'.format(np.argmax(preds, axis = 1)[0] + 1)
+			return 'This review sounds like a {0} star review. I am {1:.2f}% confident.'.format(np.argmax(preds, axis = 1)[0] + 1,
+				np.max(preds, axis = 1)[0]*100)
 		except ValueError as e:
 			print(e)
 			return "Unable to predict rating."
